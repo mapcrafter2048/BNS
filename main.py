@@ -5,8 +5,8 @@ st.set_page_config(page_title="NyayaSahayak", layout="wide")
 st.title("NyayaSahayak")
 st.caption("BNS legal information assistant")
 
-api_key = st.secrets["dapi5627c91b3230e5074977ed88c012b7fc"]
-base_url = st.secrets["https://7474650190496857.ai-gateway.cloud.databricks.com/mlflow/v1"]
+api_key = st.secrets["DATABRICKS_TOKEN"]
+base_url = st.secrets["AI_GATEWAY_BASE_URL"]
 
 client = OpenAI(
     api_key=api_key,
@@ -15,11 +15,10 @@ client = OpenAI(
 
 SYSTEM_PROMPT = """You are a legal information assistant for the Bharatiya Nyaya Sanhita (BNS).
 
-Answer the user's question using ONLY the provided context.
+Answer the user's question in simple English.
 Do not invent sections or punishments.
-If the answer is not clearly present in the context, say that the retrieved context is insufficient.
-Write in simple English.
-At the end, include a short note: "This is legal information, not legal advice."
+If the answer is not clearly known, say that the available information is insufficient.
+At the end, include: "This is legal information, not legal advice."
 """
 
 demo_queries = [
@@ -30,15 +29,16 @@ demo_queries = [
     "what is the difference between murder and culpable homicide not amounting to murder under BNS",
 ]
 
-query = st.text_input("Ask a BNS question", value="punishment for murder under BNS")
+if "picked_query" not in st.session_state:
+    st.session_state["picked_query"] = "punishment for murder under BNS"
+
+query = st.text_input("Ask a BNS question", value=st.session_state["picked_query"])
 
 with st.expander("Quick demo queries"):
     for q in demo_queries:
         if st.button(q, key=q):
             st.session_state["picked_query"] = q
-
-if "picked_query" in st.session_state:
-    query = st.session_state["picked_query"]
+            st.rerun()
 
 if st.button("Ask"):
     with st.spinner("Generating answer..."):
@@ -46,7 +46,7 @@ if st.button("Ask"):
             model="databricks-gemma-3-12b",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"User question:\n{query}"}
+                {"role": "user", "content": query}
             ],
             max_tokens=1200
         )
